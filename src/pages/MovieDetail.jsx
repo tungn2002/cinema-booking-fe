@@ -142,10 +142,6 @@ function MovieDetail() {
   };
 
   const handleShowtimeSelect = (showtime) => {
-    if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/movies/${id}` } });
-      return;
-    }
     // Navigate to booking page with showtime ID
     navigate(`/booking/${showtime.id}`);
   };

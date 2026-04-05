@@ -43,10 +43,22 @@ export function AuthProvider({ children }) {
       const response = await authAPI.login({ username, password });
       const { data } = response.data;
 
-      localStorage.setItem('token', data.token);
+      return loginWithToken(data.token);
+    } catch (error) {
+      console.error('Login error:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Login failed',
+      };
+    }
+  };
+
+  const loginWithToken = (tokenValue) => {
+    try {
+      localStorage.setItem('token', tokenValue);
 
       // Decode user info from JWT token (no need to call API)
-      const userInfo = getUserInfoFromToken(data.token);
+      const userInfo = getUserInfoFromToken(tokenValue);
 
       if (!userInfo) {
         throw new Error('Invalid token received');
@@ -54,16 +66,13 @@ export function AuthProvider({ children }) {
 
       localStorage.setItem('user', JSON.stringify(userInfo));
 
-      setToken(data.token);
+      setToken(tokenValue);
       setUser(userInfo);
 
       return { success: true, user: userInfo, isAdmin: userInfo.isAdmin };
     } catch (error) {
-      console.error('Login error:', error);
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Login failed',
-      };
+      console.error('Login with token error:', error);
+      return { success: false, message: 'Invalid token' };
     }
   };
 
@@ -109,6 +118,7 @@ export function AuthProvider({ children }) {
     token,
     loading,
     login,
+    loginWithToken,
     register,
     logout,
     checkAdmin,

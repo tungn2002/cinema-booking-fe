@@ -1,8 +1,9 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
 import Login from './pages/Login';
+import OAuth2Redirect from './pages/OAuth2Redirect';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import MovieDetail from './pages/MovieDetail';
@@ -68,7 +69,8 @@ function PublicRoute({ children }) {
 
 // Default Redirect with role check
 function DefaultRedirect() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, loginWithToken } = useAuth();
+  const location = useLocation();
 
   // Check admin directly from token (synchronous, no state needed)
   const token = localStorage.getItem('token');
@@ -82,6 +84,17 @@ function DefaultRedirect() {
         <p>Loading...</p>
       </div>
     );
+  }
+
+  // Handle OAuth2 token from URL query parameter
+  const urlParams = new URLSearchParams(location.search);
+  const oauthToken = urlParams.get('token');
+  if (oauthToken) {
+    const result = loginWithToken(oauthToken);
+    if (result.success) {
+      return <Navigate to={result.isAdmin ? '/admin' : '/movies'} replace />;
+    }
+    return <Navigate to="/login" replace />;
   }
 
   if (isAuthenticated && isAdmin) {
@@ -104,6 +117,10 @@ function AppRoutes() {
             </PublicRoute>
           }
         />
+
+        {/* OAuth2 Callbacks */}
+        <Route path="/token=:token" element={<OAuth2Redirect />} />
+        <Route path="/oauth2/redirect" element={<OAuth2Redirect />} />
 
         <Route path="/movies" element={<UserDashboard />} />
 

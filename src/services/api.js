@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://my-java-app-latest-m50a.onrender.com/api/v1';
 
 // Create axios instance
 const api = axios.create({
@@ -24,9 +24,23 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Only redirect to login if the endpoint actually requires authentication
+      // Don't redirect for public endpoints that just happen to return 401
+      const excludedPaths = [
+        '/movies/',
+        '/theaters/',
+        '/showtimes/',
+        '/seats/',
+        '/reviews/movies/',
+      ];
+      const url = error.config?.url || '';
+      const shouldRedirect = !excludedPaths.some(path => url.includes(path));
+
+      if (shouldRedirect) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
