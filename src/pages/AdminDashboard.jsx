@@ -43,7 +43,7 @@ function AdminDashboard() {
 
   const connectWebSocket = () => {
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+      const baseUrl = import.meta.env.VITE_API_URL || 'https://my-java-app-latest-m50a.onrender.com/api/v1';
       const wsUrl = baseUrl.replace('/api/v1', '/ws');
       const socket = new SockJS(wsUrl);
       const stompClient = Stomp.over(socket);

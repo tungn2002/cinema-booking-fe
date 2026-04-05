@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@paypal/react-paypal-js": "^10.6.0",
+    "@stomp/stompjs": "^7.3.0",
+    "@stripe/react-stripe-js": "^7.0.0",
+    "@stripe/stripe-js": "^10.0.0",
     "axios": "^1.14.0",
     "framer-motion": "^12.38.0",
     "react": "^19.2.4",
