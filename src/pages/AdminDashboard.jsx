@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import SockJS from 'sockjs-client';
+import Stomp from 'stompjs';
 import { useAuth } from '../context/AuthContext.jsx';
 import { dashboardAPI, movieAPI, reservationAPI, userAPI, showtimeAPI, seatAPI, reviewAPI, theaterAPI, cloudinaryAPI } from '../services/api.js';
 import {
@@ -18,8 +20,9 @@ function AdminDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const stompClientRef = useRef(null);
 
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,7 +30,62 @@ function AdminDashboard() {
     setUser(userData);
     fetchMetrics();
     fetchNotifications();
+    fetchUnseenCount();
   }, []);
+
+  // WebSocket Connection for Real-time Review Notifications
+  useEffect(() => {
+    if (isAuthenticated) {
+      connectWebSocket();
+    }
+    return () => disconnectWebSocket();
+  }, [isAuthenticated]);
+
+  const connectWebSocket = () => {
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+      const wsUrl = baseUrl.replace('/api/v1', '/ws');
+      const socket = new SockJS(wsUrl);
+      const stompClient = Stomp.over(socket);
+      stompClient.debug = null; // Disable logging for cleaner console
+
+      stompClient.connect({}, (frame) => {
+        console.log('WS Connected: ' + frame);
+        stompClientRef.current = stompClient;
+
+        stompClient.subscribe('/topic/reviews', (message) => {
+          if (message.body === 'NEW_REVIEW') {
+            toast('New review received!', { icon: '⭐' });
+            fetchUnseenCount();
+            // Also refresh notifications list
+            fetchNotifications();
+          }
+        });
+      }, (error) => {
+        console.error('WS Error:', error);
+        // Retry connection after 5 seconds
+        setTimeout(connectWebSocket, 5000);
+      });
+    } catch (err) {
+      console.error('Failed to init WS:', err);
+    }
+  };
+
+  const disconnectWebSocket = () => {
+    if (stompClientRef.current) {
+      stompClientRef.current.disconnect();
+      console.log('WS Disconnected');
+    }
+  };
+
+  const fetchUnseenCount = async () => {
+    try {
+      const response = await reviewAPI.getUnseenCount();
+      setUnreadCount(response.data.data);
+    } catch (error) {
+      console.error('Error fetching unseen count:', error);
+    }
+  };
 
   const fetchMetrics = async () => {
     try {
@@ -84,7 +142,7 @@ function AdminDashboard() {
       }
 
       setNotifications(newNotifications);
-      setUnreadCount(newNotifications.reduce((sum, n) => sum + n.count, 0));
+      // unreadCount is handled by fetchUnseenCount separately
     } catch (error) {
       console.error('Error fetching notifications:', error);
     }
@@ -92,12 +150,34 @@ function AdminDashboard() {
 
   const handleMarkAsRead = (notifId) => {
     setNotifications(prev => prev.filter(n => n.id !== notifId));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    // If we mark a review notification as read, it doesn't necessarily mark all as seen in DB
+    // but we can decrement count locally if needed
   };
 
-  const handleClearAll = () => {
-    setNotifications([]);
-    setUnreadCount(0);
+  const handleClearAll = async () => {
+    try {
+      await reviewAPI.markAllAsSeen();
+      setNotifications([]);
+      setUnreadCount(0);
+      toast.success('All reviews marked as seen');
+    } catch (err) {
+      console.error('Error clearing notifications:', err);
+    }
+  };
+
+  const handleBellClick = async () => {
+    const newShowState = !showNotifications;
+    setShowNotifications(newShowState);
+    
+    // When opening notifications, mark reviews as seen in the database
+    if (newShowState && unreadCount > 0) {
+      try {
+        await reviewAPI.markAllAsSeen();
+        setUnreadCount(0);
+      } catch (err) {
+        console.error('Error marking as seen:', err);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -256,8 +336,8 @@ function AdminDashboard() {
             {/* Notification Bell */}
             <div className="notification-wrapper">
               <button 
-                className="notification-bell"
-                onClick={() => setShowNotifications(!showNotifications)}
+                className={`notification-bell ${unreadCount > 0 ? 'has-unread' : ''}`}
+                onClick={handleBellClick}
               >
                 <FiBell className="bell-icon" />
                 {unreadCount > 0 && (

@@ -121,6 +121,8 @@ export const reviewAPI = {
   reject: (reviewId) => api.put(`/reviews/${reviewId}/reject`),
   upvote: (reviewId) => api.put(`/reviews/${reviewId}/upvote`),
   downvote: (reviewId) => api.put(`/reviews/${reviewId}/downvote`),
+  getUnseenCount: () => api.get('/reviews/unseen-count'),
+  markAllAsSeen: () => api.put('/reviews/mark-all-as-seen'),
 };
 
 // Cloudinary APIs
