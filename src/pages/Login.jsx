@@ -303,7 +303,7 @@ function Login() {
 
           {/* Google Login Button */}
           <motion.a
-            href={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') ?? 'https://my-java-app-latest-m50a.onrender.com'}/oauth2/authorization/google`}
+            href={`${import.meta.env.VITE_API_URL?.replace('/api/v1', '') || ''}/oauth2/authorization/google`}
             className="btn-google"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
