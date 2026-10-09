@@ -483,14 +483,9 @@ function ReservationCard({ reservation, index, onCancel, onViewDetails, onPaymen
           )}
 
           {isPaid && !isPast && (
-            <>
-              <button className="btn-pay" onClick={() => onPayment(reservation)}>
-                <FiCreditCard /> Re-pay
-              </button>
-              <button className="btn-cancel" onClick={() => onCancel(reservation.id)}>
-                <FiXCircle /> Cancel
-              </button>
-            </>
+            <span className="paid-note" style={{ color: 'var(--success-color)', marginLeft: '10px' }}>
+              <FiCheckCircle /> Payment Completed
+            </span>
           )}
 
           {isCanceled && (
