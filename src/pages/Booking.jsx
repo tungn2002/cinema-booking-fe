@@ -12,8 +12,8 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import './Booking.css';
 
-// Replace with your actual Stripe publishable key
-const stripePromise = loadStripe('pk_test_51PxmQCRu1H17c37qEw20yO...'); 
+// Load Stripe with the public key from env
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_YOUR_ACTUAL_KEY_HERE'); 
 
 const CheckoutForm = ({ reservation, clientSecret, onSuccess, amount }) => {
   const stripe = useStripe();
@@ -94,7 +94,11 @@ function Booking() {
 
   const setupWebSocket = () => {
     const client = new Client({
-      webSocketFactory: () => new SockJS('/ws'),
+      webSocketFactory: () => {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+        const wsUrl = apiUrl.replace('/api/v1', '') + '/ws';
+        return new SockJS(wsUrl);
+      },
       onConnect: () => {
         console.log('Connected to WS');
         client.subscribe(`/topic/showtimes/${showtimeId}/seats`, (msg) => {
@@ -367,7 +371,7 @@ function Booking() {
                       </Elements>
                     ) : (
                       <div className="paypal-button-container" style={{padding: '20px', background: '#fff', borderRadius: '8px', minWidth: '300px'}}>
-                        <PayPalScriptProvider options={{ "client-id": "test", components: "buttons", currency: "USD", intent: "capture" }}>
+                        <PayPalScriptProvider options={{ "client-id": import.meta.env.VITE_PAYPAL_CLIENT_ID || "test", components: "buttons", currency: "USD", intent: "capture" }}>
                           <PayPalButtons 
                             createOrder={(data, actions) => {
                               return clientSecret; // for Paypal, clientSecret is the orderId returned from our BE
