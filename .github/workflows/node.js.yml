@@ -1,31 +1,50 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Node.js CI
+name: Deploy Frontend to VPS
 
 on:
   push:
-    branches: [ "master" ]
-  pull_request:
-    branches: [ "master" ]
+    branches: [ "master" ] # Chạy khi push code lên nhánh master
 
 jobs:
-  build:
-
+  deploy:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
+    # 1. Tải code từ Github về con server ảo của Github Actions
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # 2. Xóa các thư mục không cần thiết trước khi copy lên VPS để tiết kiệm thời gian (vd: .git)
+    - name: Cleanup unnecessary files
+      run: rm -rf .git .github
+
+    # 3. Copy toàn bộ code Frontend lên VPS
+    - name: Copy code to VPS
+      uses: appleboy/scp-action@v0.1.7
       with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - run: npm test
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: "."
+        target: "/var/www/cinema-booking-fe" # Mình quyết định dùng thư mục chuẩn của Linux là /var/www/
+        strip_components: 1 # Đảm bảo file được copy thẳng vào thư mục đích, không tạo thêm thư mục con
+
+    # 4. SSH vào VPS và chạy lệnh build lại Docker cho riêng Frontend
+    - name: Rebuild and Restart Docker
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Di chuyển tới thư mục chứa file docker-compose-prod.yml (Thư mục Backend)
+          # Chuyển tới thư mục Backend
+          cd /var/www/cinema-booking-be
+          
+          # Build lại image cho riêng frontend dựa trên code mới
+          docker-compose -f docker-compose-prod.yml build frontend
+          
+          # Khởi động lại riêng container frontend (không làm sập backend đang chạy)
+          docker-compose -f docker-compose-prod.yml up -d frontend
+          
+          # Xóa các image cũ (dangling) để không bị đầy ổ cứng VPS
+          docker image prune -f
