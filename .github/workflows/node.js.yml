@@ -3,6 +3,7 @@ name: Deploy Frontend to VPS
 on:
   push:
     branches: [ "master" ] # Chạy khi push code lên nhánh master
+  workflow_dispatch: # Cho phép bấm nút chạy bằng tay trên web Github
 
 jobs:
   deploy:
