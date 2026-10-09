@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
 import { movieAPI, showtimeAPI, seatAPI, reservationAPI, paymentAPI } from '../services/api.js';
-import { FiArrowLeft, FiStar, FiCalendar, FiClock, FiCreditCard, FiMapPin, FiFilm, FiChevronRight, FiLock, FiAlertCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiStar, FiCalendar, FiClock, FiCreditCard, FiMapPin, FiFilm, FiChevronRight, FiLock, FiAlertCircle, FiCheck } from 'react-icons/fi';
 import SockJS from 'sockjs-client';
 import { Client } from '@stomp/stompjs';
 import { loadStripe } from '@stripe/stripe-js';
@@ -94,7 +94,7 @@ function Booking() {
 
   const setupWebSocket = () => {
     const client = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS('/ws'),
       onConnect: () => {
         console.log('Connected to WS');
         client.subscribe(`/topic/showtimes/${showtimeId}/seats`, (msg) => {
