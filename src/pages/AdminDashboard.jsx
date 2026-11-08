@@ -2141,7 +2141,14 @@ function ImagesTab() {
     try {
       setLoading(true);
       const response = await cloudinaryAPI.getAll();
-      setImages(response.data.data || []);
+      const rawData = Array.isArray(response.data)
+        ? response.data
+        : (response.data?.data || response.data?.payload || []);
+      const normalizedImages = rawData.map((img) => ({
+        url: img.secure_url || img.url,
+        publicId: img.public_id || img.publicId,
+      }));
+      setImages(normalizedImages);
     } catch (error) {
       console.error('Error fetching images:', error);
       toast.error('Failed to load images');
@@ -2195,7 +2202,7 @@ function ImagesTab() {
       transition={{ duration: 0.4 }}
     >
       <div className="tab-header">
-        <h2>Image Gallery (Cloudinary)</h2>
+        <h2>Image Gallery (Storage)</h2>
         <div className="header-actions">
           <label className="btn-primary" style={{ cursor: 'pointer' }}>
             {uploading ? (
@@ -2226,7 +2233,7 @@ function ImagesTab() {
         <div className="empty-state">
           <FiImage className="empty-icon" />
           <h3>No images found</h3>
-          <p>Upload some posters or assets to Cloudinary</p>
+          <p>Upload some posters or assets to storage</p>
         </div>
       ) : (
         <div className="image-grid">

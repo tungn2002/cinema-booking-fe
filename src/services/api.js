@@ -145,18 +145,19 @@ export const reviewAPI = {
   markAllAsSeen: () => api.put('/reviews/mark-all-as-seen'),
 };
 
-// Cloudinary APIs
+// Storage APIs (MinIO / S3)
 export const cloudinaryAPI = {
-  getAll: () => api.get('/media/cloudinary'),
+  getAll: () => api.get('/media/s3'),
   upload: (file) => {
     const formData = new FormData();
     formData.append('file', file);
-    return api.post('/media/cloudinary', formData, {
+    return api.post('/media/s3/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
-  delete: (publicId) => api.delete('/media/cloudinary', { params: { publicId } }),
+  delete: (publicId) => api.delete(`/media/s3/${encodeURIComponent(publicId)}`),
 };
+export const storageAPI = cloudinaryAPI;
 
 // Admin Dashboard APIs
 export const dashboardAPI = {
